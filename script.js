@@ -516,8 +516,22 @@ function showCourseDetails(courseId) {
                            ${topic.completed ? 'checked' : ''} 
                            onchange="toggleTopic('${course.id}', '${topic.id}')">
                     <span class="topic-label">${topic.name}</span>
+                    <button class="remove-topic-btn" onclick="removeTopicFromCourse('${course.id}', '${topic.id}')" title="Remove topic">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
             `).join('')}
+        </div>
+        <div class="add-topic-section" style="margin: 20px 0;">
+            <div class="input-group">
+                <input type="text" 
+                       id="newTopicInput_${course.id}" 
+                       placeholder="Add new topic..." 
+                       onkeypress="if(event.key==='Enter') addTopicToCourse('${course.id}')">
+                <button type="button" onclick="addTopicToCourse('${course.id}')" class="add-topic-btn">
+                    <i class="fas fa-plus"></i> Add Topic
+                </button>
+            </div>
         </div>
         <div class="form-buttons" style="margin-top: 25px;">
             <button type="button" onclick="deleteCourse('${course.id}')">
@@ -556,6 +570,55 @@ function toggleTopic(courseId, topicId) {
     updateDashboard();
     renderCourses();
     showCourseDetails(courseId); // Refresh the modal
+}
+
+function addTopicToCourse(courseId) {
+    const input = document.getElementById(`newTopicInput_${courseId}`);
+    const topicName = input.value.trim();
+    
+    if (!topicName) {
+        alert('Please enter a topic name');
+        return;
+    }
+    
+    const course = courses.find(c => c.id === courseId);
+    if (!course) return;
+    
+    // Check for duplicate topics
+    if (course.topics.some(t => t.name.toLowerCase() === topicName.toLowerCase())) {
+        alert('This topic already exists in the course');
+        return;
+    }
+    
+    // Add new topic
+    const newTopic = {
+        id: Date.now().toString(),
+        name: topicName,
+        completed: false
+    };
+    
+    course.topics.push(newTopic);
+    course.lastUpdated = new Date();
+    
+    // Save and refresh
+    saveCourses();
+    input.value = '';
+    showCourseDetails(courseId); // Refresh the modal
+    updateDashboard();
+}
+
+function removeTopicFromCourse(courseId, topicId) {
+    const course = courses.find(c => c.id === courseId);
+    if (!course) return;
+    
+    if (confirm('Are you sure you want to remove this topic?')) {
+        course.topics = course.topics.filter(t => t.id !== topicId);
+        course.lastUpdated = new Date();
+        
+        saveCourses();
+        showCourseDetails(courseId); // Refresh the modal
+        updateDashboard();
+    }
 }
 
 // Modal Management

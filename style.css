@@ -731,6 +731,7 @@ header p {
     border-radius: 10px;
     border: 2px solid #e9ecef;
     transition: all 0.3s ease;
+    position: relative;
 }
 
 .topic-item-detail:hover {
@@ -758,6 +759,68 @@ header p {
 .topic-item-detail.completed .topic-label {
     text-decoration: line-through;
     color: #6c757d;
+}
+
+.remove-topic-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 3px;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    font-size: 12px;
+}
+
+.remove-topic-btn:hover {
+    opacity: 1;
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.add-topic-section {
+    border-top: 2px dashed #e0e0e0;
+    padding-top: 15px;
+    margin-top: 15px;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.input-group input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.add-topic-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.add-topic-btn:hover {
+    background: #5a6fd8;
+    transform: translateY(-1px);
 }
 
 /* Pomodoro Timer Styles */
