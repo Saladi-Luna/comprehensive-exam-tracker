@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Exam Progress Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-graduation-cap"></i> Comprehensive Exam Progress Tracker</h1>
+            <p>Track your comprehensive exam preparation across Deep Learning, Image Processing, and Biomedical Devices</p>
+        </header>
+
+        <nav class="nav-tabs">
+            <button class="tab-btn active" onclick="showTab('dashboard')">
+                <i class="fas fa-chart-pie"></i> Dashboard
+            </button>
+            <button class="tab-btn" onclick="showTab('courses')">
+                <i class="fas fa-book"></i> Courses
+            </button>
+            <button class="tab-btn" onclick="showTab('analytics')">
+                <i class="fas fa-chart-bar"></i> Analytics
+            </button>
+            <button class="tab-btn" onclick="showTab('pomodoro')">
+                <i class="fas fa-clock"></i> Pomodoro
+            </button>
+        </nav>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalCourses">0</h3>
+                        <p>Exam Subjects</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalTopics">0</h3>
+                        <p>Total Topics</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="completedTopics">0</h3>
+                        <p>Topics Mastered</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="overallProgress">0%</h3>
+                        <p>Exam Readiness</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-charts">
+                <div class="chart-container">
+                    <h3>Exam Preparation Progress</h3>
+                    <canvas id="progressChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Subject-wise Readiness</h3>
+                    <canvas id="courseChart"></canvas>
+                </div>
+            </div>
+
+            <div class="recent-activity">
+                <h3><i class="fas fa-clock"></i> Study Activity</h3>
+                <div id="recentActivities" class="activity-list">
+                    <p class="no-activities">No study activities yet. Start preparing for your comprehensive exam!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Courses Tab -->
+        <div id="courses" class="tab-content">
+            <div class="courses-header">
+                <h2>Comprehensive Exam Subjects</h2>
+                <button class="add-btn" onclick="showAddCourseModal()">
+                    <i class="fas fa-plus"></i> Add Subject
+                </button>
+            </div>
+            <div id="coursesList" class="courses-grid">
+                <div class="empty-state">
+                    <i class="fas fa-book-open"></i>
+                    <h3>No subjects yet</h3>
+                    <p>Add your comprehensive exam subjects to start tracking your preparation!</p>
+                    <button class="add-btn" onclick="showAddCourseModal()">Add Subject</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics" class="tab-content">
+            <div class="analytics-grid">
+                <div class="analytics-card">
+                    <h3>Study Streak</h3>
+                    <div class="streak-display">
+                        <span class="streak-number" id="studyStreak">0</span>
+                        <span class="streak-text">days</span>
+                    </div>
+                </div>
+                <div class="analytics-card">
+                    <h3>Topics This Week</h3>
+                    <div class="metric" id="topicsThisWeek">0</div>
+                </div>
+                <div class="analytics-card">
+                    <h3>Exam Readiness</h3>
+                    <div class="metric" id="averageProgress">0%</div>
+                </div>
+                <div class="analytics-card">
+                    <h3>Time to Exam Ready</h3>
+                    <div class="metric" id="estimatedTime">-</div>
+                </div>
+            </div>
+            
+            <div class="progress-timeline">
+                <h3>Study Progress Timeline</h3>
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Pomodoro Timer Tab -->
+        <div id="pomodoro" class="tab-content">
+            <div class="pomodoro-container">
+                <div class="timer-display">
+                    <div class="timer-status">
+                        <h2 id="pomodoroStatus">Ready to Focus</h2>
+                        <p id="pomodoroDescription">Start a 25-minute focus session</p>
+                    </div>
+                    <div class="timer-circle">
+                        <div class="timer-time" id="timerDisplay">25:00</div>
+                    </div>
+                    <div class="timer-controls">
+                        <button id="startPauseBtn" class="timer-btn primary">
+                            <i class="fas fa-play"></i> Start
+                        </button>
+                        <button id="resetBtn" class="timer-btn secondary">
+                            <i class="fas fa-refresh"></i> Reset
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="pomodoro-stats">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="completedPomodoros">0</div>
+                            <div class="stat-label">Today's Sessions</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalFocusTime">0h</div>
+                            <div class="stat-label">Focus Time Today</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="currentCycle">1/4</div>
+                            <div class="stat-label">Current Cycle</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pomodoro-settings">
+                    <h3>Timer Settings</h3>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label for="focusTime">Focus Time (minutes)</label>
+                            <input type="number" id="focusTime" value="25" min="1" max="60">
+                        </div>
+                        <div class="setting-item">
+                            <label for="shortBreak">Short Break (minutes)</label>
+                            <input type="number" id="shortBreak" value="5" min="1" max="30">
+                        </div>
+                        <div class="setting-item">
+                            <label for="longBreak">Long Break (minutes)</label>
+                            <input type="number" id="longBreak" value="15" min="1" max="60">
+                        </div>
+                        <div class="setting-item">
+                            <label for="soundEnabled">Sound Notifications</label>
+                            <input type="checkbox" id="soundEnabled" checked>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Course Modal -->
+    <div id="addCourseModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addCourseModal')">&times;</span>
+            <h2>Add New Subject</h2>
+            <form id="addCourseForm">
+                <div class="form-group">
+                    <label for="courseName">Subject Name</label>
+                    <input type="text" id="courseName" required placeholder="e.g., Deep Learning for Computer Vision">
+                </div>
+                <div class="form-group">
+                    <label for="courseDescription">Description (Optional)</label>
+                    <textarea id="courseDescription" placeholder="Brief description of the exam subject"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="courseTopics">Topics/Modules</label>
+                    <div class="topics-input">
+                        <input type="text" id="newTopicInput" placeholder="Enter topic name">
+                        <button type="button" onclick="addTopic()">Add Topic</button>
+                    </div>
+                    <div id="topicsList" class="topics-list"></div>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" onclick="closeModal('addCourseModal')">Cancel</button>
+                    <button type="submit">Add Subject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Course Details Modal -->
+    <div id="courseDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('courseDetailsModal')">&times;</span>
+            <div id="courseDetailsContent"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
