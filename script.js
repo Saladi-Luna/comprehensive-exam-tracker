@@ -1136,27 +1136,44 @@ function saveDailyStats() {
 
 // Backup and Restore Functions
 function generateBackupCode() {
-    // Collect all data to backup
-    const backupData = {
-        courses: courses,
-        activities: activities,
-        dailyStats: dailyStats,
-        version: COURSE_DATA_VERSION,
-        timestamp: new Date().toISOString()
-    };
-    
-    // Convert to JSON and encode to base64
-    const jsonString = JSON.stringify(backupData);
-    const base64Data = btoa(jsonString);
-    
-    // Create a formatted code (groups of 4 characters)
-    const code = base64Data.match(/.{1,4}/g).join('-').toUpperCase();
-    
-    // Show the code in modal
-    document.getElementById('backupCodeText').value = code;
-    document.getElementById('backupCodeModal').style.display = 'block';
-    
-    console.log('Backup code generated successfully');
+    try {
+        // Collect all data to backup
+        const backupData = {
+            courses: courses,
+            activities: activities,
+            dailyStats: dailyStats,
+            version: COURSE_DATA_VERSION,
+            timestamp: new Date().toISOString()
+        };
+        
+        // Convert to JSON
+        const jsonString = JSON.stringify(backupData);
+        
+        // Use a safer encoding method that works across all browsers
+        let base64Data;
+        try {
+            // Try modern approach first
+            base64Data = btoa(unescape(encodeURIComponent(jsonString)));
+        } catch (e) {
+            // Fallback for older browsers or special characters
+            base64Data = btoa(jsonString.replace(/[\u00A0-\u2666]/g, function(c) {
+                return '&#' + c.charCodeAt(0) + ';';
+            }));
+        }
+        
+        // Create a formatted code (groups of 4 characters)
+        const code = base64Data.match(/.{1,4}/g).join('-').toUpperCase();
+        
+        // Show the code in modal
+        document.getElementById('backupCodeText').value = code;
+        document.getElementById('backupCodeModal').style.display = 'block';
+        
+        console.log('Backup code generated successfully');
+        
+    } catch (error) {
+        console.error('Error generating backup code:', error);
+        alert('Error generating backup code. Please try again or contact support.');
+    }
 }
 
 function showRestoreModal() {
@@ -1166,26 +1183,54 @@ function showRestoreModal() {
 
 function copyBackupCode() {
     const codeInput = document.getElementById('backupCodeText');
-    codeInput.select();
-    codeInput.setSelectionRange(0, 99999); // For mobile devices
     
-    try {
-        document.execCommand('copy');
-        
-        // Visual feedback
-        const copyBtn = document.querySelector('.copy-btn');
-        const originalText = copyBtn.innerHTML;
-        copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        copyBtn.style.background = '#28a745';
-        
-        setTimeout(() => {
-            copyBtn.innerHTML = originalText;
-            copyBtn.style.background = '#667eea';
-        }, 2000);
-        
-    } catch (err) {
-        alert('Please manually copy the code');
+    // Try modern clipboard API first (works in newer browsers)
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(codeInput.value).then(() => {
+            showCopySuccess();
+        }).catch(() => {
+            // Fallback to older method
+            fallbackCopy(codeInput);
+        });
+    } else {
+        // Use fallback method for older browsers or non-HTTPS
+        fallbackCopy(codeInput);
     }
+}
+
+function fallbackCopy(codeInput) {
+    try {
+        codeInput.select();
+        codeInput.setSelectionRange(0, 99999); // For mobile devices
+        
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopySuccess();
+        } else {
+            showManualCopy();
+        }
+    } catch (err) {
+        console.log('Copy failed:', err);
+        showManualCopy();
+    }
+}
+
+function showCopySuccess() {
+    const copyBtn = document.querySelector('.copy-btn');
+    const originalText = copyBtn.innerHTML;
+    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    copyBtn.style.background = '#28a745';
+    
+    setTimeout(() => {
+        copyBtn.innerHTML = originalText;
+        copyBtn.style.background = '#667eea';
+    }, 2000);
+}
+
+function showManualCopy() {
+    alert('Please manually copy the backup code from the text box above.');
+    // Select the text to make it easier to copy manually
+    document.getElementById('backupCodeText').select();
 }
 
 function restoreFromCode() {
@@ -1201,20 +1246,39 @@ function restoreFromCode() {
         // Remove dashes and convert back to base64
         const base64Data = code.replace(/-/g, '');
         
-        // Decode from base64 to JSON
-        const jsonString = atob(base64Data);
+        // Use safer decoding method
+        let jsonString;
+        try {
+            // Try modern approach first
+            jsonString = decodeURIComponent(escape(atob(base64Data)));
+        } catch (e) {
+            // Fallback for simpler encoding
+            jsonString = atob(base64Data);
+        }
+        
         const backupData = JSON.parse(jsonString);
         
         // Validate backup data
-        if (!backupData.courses || !backupData.activities) {
-            throw new Error('Invalid backup code format');
+        if (!backupData.courses || !Array.isArray(backupData.courses)) {
+            throw new Error('Invalid backup code: courses data missing or invalid');
         }
+        
+        if (!backupData.activities || !Array.isArray(backupData.activities)) {
+            throw new Error('Invalid backup code: activities data missing or invalid');
+        }
+        
+        // Calculate stats for confirmation
+        const totalTopics = backupData.courses.reduce((sum, course) => sum + (course.topics ? course.topics.length : 0), 0);
+        const completedTopics = backupData.courses.reduce((sum, course) => sum + (course.topics ? course.topics.filter(t => t.completed).length : 0), 0);
         
         // Confirm before restoring
         const confirmation = confirm(
-            `This will replace your current progress with data from ${new Date(backupData.timestamp).toLocaleDateString()}. ` +
-            `Backup contains ${backupData.courses.length} courses with ${backupData.courses.reduce((sum, course) => sum + course.topics.filter(t => t.completed).length, 0)} completed topics. ` +
-            `Continue?`
+            `This will replace your current progress with data from ${new Date(backupData.timestamp).toLocaleDateString()}.\n\n` +
+            `Backup contains:\n` +
+            `• ${backupData.courses.length} courses\n` +
+            `• ${completedTopics} of ${totalTopics} topics completed\n` +
+            `• ${backupData.activities.length} recent activities\n\n` +
+            `Continue with restore?`
         );
         
         if (!confirmation) return;
@@ -1240,8 +1304,8 @@ function restoreFromCode() {
         alert('Progress restored successfully! 🎉');
         
     } catch (err) {
-        alert('Invalid backup code. Please check the code and try again.');
         console.error('Restore error:', err);
+        alert(`Invalid backup code: ${err.message}\n\nPlease check the code and try again.`);
     }
 }
 
