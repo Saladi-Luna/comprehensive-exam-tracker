@@ -1133,3 +1133,128 @@ function showNotification() {
 function saveDailyStats() {
     localStorage.setItem('dailyPomodoroStats', JSON.stringify(dailyStats));
 }
+
+// Backup and Restore Functions
+function generateBackupCode() {
+    // Collect all data to backup
+    const backupData = {
+        courses: courses,
+        activities: activities,
+        dailyStats: dailyStats,
+        version: COURSE_DATA_VERSION,
+        timestamp: new Date().toISOString()
+    };
+    
+    // Convert to JSON and encode to base64
+    const jsonString = JSON.stringify(backupData);
+    const base64Data = btoa(jsonString);
+    
+    // Create a formatted code (groups of 4 characters)
+    const code = base64Data.match(/.{1,4}/g).join('-').toUpperCase();
+    
+    // Show the code in modal
+    document.getElementById('backupCodeText').value = code;
+    document.getElementById('backupCodeModal').style.display = 'block';
+    
+    console.log('Backup code generated successfully');
+}
+
+function showRestoreModal() {
+    document.getElementById('restoreCodeInput').value = '';
+    document.getElementById('restoreCodeModal').style.display = 'block';
+}
+
+function copyBackupCode() {
+    const codeInput = document.getElementById('backupCodeText');
+    codeInput.select();
+    codeInput.setSelectionRange(0, 99999); // For mobile devices
+    
+    try {
+        document.execCommand('copy');
+        
+        // Visual feedback
+        const copyBtn = document.querySelector('.copy-btn');
+        const originalText = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        copyBtn.style.background = '#28a745';
+        
+        setTimeout(() => {
+            copyBtn.innerHTML = originalText;
+            copyBtn.style.background = '#667eea';
+        }, 2000);
+        
+    } catch (err) {
+        alert('Please manually copy the code');
+    }
+}
+
+function restoreFromCode() {
+    const codeInput = document.getElementById('restoreCodeInput');
+    const code = codeInput.value.trim();
+    
+    if (!code) {
+        alert('Please enter a backup code');
+        return;
+    }
+    
+    try {
+        // Remove dashes and convert back to base64
+        const base64Data = code.replace(/-/g, '');
+        
+        // Decode from base64 to JSON
+        const jsonString = atob(base64Data);
+        const backupData = JSON.parse(jsonString);
+        
+        // Validate backup data
+        if (!backupData.courses || !backupData.activities) {
+            throw new Error('Invalid backup code format');
+        }
+        
+        // Confirm before restoring
+        const confirmation = confirm(
+            `This will replace your current progress with data from ${new Date(backupData.timestamp).toLocaleDateString()}. ` +
+            `Backup contains ${backupData.courses.length} courses with ${backupData.courses.reduce((sum, course) => sum + course.topics.filter(t => t.completed).length, 0)} completed topics. ` +
+            `Continue?`
+        );
+        
+        if (!confirmation) return;
+        
+        // Restore data
+        courses = backupData.courses;
+        activities = backupData.activities;
+        dailyStats = backupData.dailyStats || { date: new Date().toDateString(), completed: 0, focusTime: 0 };
+        
+        // Save restored data
+        saveCourses();
+        saveActivities();
+        saveDailyStats();
+        
+        // Update displays
+        updateDashboard();
+        renderCourses();
+        updateAnalytics();
+        updatePomodoroStats();
+        
+        // Close modal and show success
+        closeModal('restoreCodeModal');
+        alert('Progress restored successfully! 🎉');
+        
+    } catch (err) {
+        alert('Invalid backup code. Please check the code and try again.');
+        console.error('Restore error:', err);
+    }
+}
+
+// Add click handlers for backup/restore modals
+document.addEventListener('DOMContentLoaded', () => {
+    // Close modal when clicking outside or on close button
+    document.addEventListener('click', (event) => {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+        if (event.target.classList.contains('close')) {
+            const modal = event.target.closest('.modal');
+            if (modal) modal.style.display = 'none';
+        }
+    });
+});

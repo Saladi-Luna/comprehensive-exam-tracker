@@ -84,6 +84,14 @@
 
             <div class="recent-activity">
                 <h3><i class="fas fa-clock"></i> Study Activity</h3>
+                <div class="sync-controls">
+                    <button class="sync-btn backup" onclick="generateBackupCode()">
+                        <i class="fas fa-upload"></i> Generate Backup Code
+                    </button>
+                    <button class="sync-btn restore" onclick="showRestoreModal()">
+                        <i class="fas fa-download"></i> Restore from Code
+                    </button>
+                </div>
                 <div id="recentActivities" class="activity-list">
                     <p class="no-activities">No study activities yet. Start preparing for your comprehensive exam!</p>
                 </div>
@@ -236,6 +244,49 @@
         <div class="modal-content">
             <span class="close" onclick="closeModal('courseDetailsModal')">&times;</span>
             <div id="courseDetailsContent"></div>
+        </div>
+    </div>
+
+    <!-- Backup Code Modal -->
+    <div id="backupCodeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('backupCodeModal')">&times;</span>
+            <h2><i class="fas fa-upload"></i> Backup Code Generated</h2>
+            <div class="backup-code-display">
+                <p>Copy this code to sync your progress to another device:</p>
+                <div class="code-container">
+                    <input type="text" id="backupCodeText" readonly>
+                    <button onclick="copyBackupCode()" class="copy-btn">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <p class="backup-instructions">
+                    <strong>How to use:</strong><br>
+                    1. Copy this code<br>
+                    2. Open tracker on another device<br>
+                    3. Click "Restore from Code"<br>
+                    4. Paste the code to sync your progress
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restore Code Modal -->
+    <div id="restoreCodeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('restoreCodeModal')">&times;</span>
+            <h2><i class="fas fa-download"></i> Restore Progress</h2>
+            <div class="restore-code-form">
+                <p>Enter your backup code to restore progress from another device:</p>
+                <div class="form-group">
+                    <label for="restoreCodeInput">Backup Code:</label>
+                    <input type="text" id="restoreCodeInput" placeholder="Enter backup code (e.g., XR4K-M8NP-Q2TJ-7WBS)">
+                </div>
+                <div class="form-buttons">
+                    <button type="button" onclick="closeModal('restoreCodeModal')">Cancel</button>
+                    <button type="button" onclick="restoreFromCode()" class="restore-btn">Restore Progress</button>
+                </div>
+            </div>
         </div>
     </div>
 
