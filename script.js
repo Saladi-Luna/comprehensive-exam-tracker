@@ -1200,42 +1200,60 @@ function saveDailyStats() {
 // Backup and Restore Functions
 function generateBackupCode() {
     try {
-        // Collect all data to backup
+        // Create backup data
         const backupData = {
             courses: courses,
-            activities: activities,
+            activities: activities.slice(-5), // Only last 5 activities
             dailyStats: dailyStats,
             version: COURSE_DATA_VERSION,
-            timestamp: new Date().toISOString()
+            timestamp: Date.now()
         };
         
-        // Convert to JSON
-        const jsonString = JSON.stringify(backupData);
+        // Store full data in localStorage with unique key
+        const backupKey = 'backup_' + Date.now();
+        localStorage.setItem(backupKey, JSON.stringify(backupData));
         
-        // Use a safer encoding method that works across all browsers
-        let base64Data;
-        try {
-            // Try modern approach first
-            base64Data = btoa(unescape(encodeURIComponent(jsonString)));
-        } catch (e) {
-            // Fallback for older browsers or special characters
-            base64Data = btoa(jsonString.replace(/[\u00A0-\u2666]/g, function(c) {
-                return '&#' + c.charCodeAt(0) + ';';
-            }));
-        }
+        // Create short reference code (8 characters)
+        const shortCode = backupKey.replace('backup_', '').substring(0, 8).toUpperCase();
+        const formattedCode = shortCode.match(/.{1,4}/g).join('-');
         
-        // Create a formatted code (groups of 4 characters)
-        const code = base64Data.match(/.{1,4}/g).join('-').toUpperCase();
+        // Store mapping
+        localStorage.setItem('backupMapping_' + shortCode, backupKey);
         
         // Show the code in modal
-        document.getElementById('backupCodeText').value = code;
+        document.getElementById('backupCodeText').value = formattedCode;
         document.getElementById('backupCodeModal').style.display = 'block';
+        
+        // Clean up old backups (keep only last 10)
+        cleanupOldBackups();
         
         console.log('Backup code generated successfully');
         
     } catch (error) {
         console.error('Error generating backup code:', error);
-        alert('Error generating backup code. Please try again or contact support.');
+        alert('Error generating backup code. Please try again.');
+    }
+}
+
+function cleanupOldBackups() {
+    try {
+        const backupKeys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('backup_')) {
+                backupKeys.push(key);
+            }
+        }
+        
+        // Sort by timestamp and remove old ones
+        backupKeys.sort().slice(0, -10).forEach(key => {
+            localStorage.removeItem(key);
+            // Also remove mapping
+            const shortCode = key.replace('backup_', '').substring(0, 8).toUpperCase();
+            localStorage.removeItem('backupMapping_' + shortCode);
+        });
+    } catch (error) {
+        console.log('Cleanup error:', error);
     }
 }
 
@@ -1298,7 +1316,7 @@ function showManualCopy() {
 
 function restoreFromCode() {
     const codeInput = document.getElementById('restoreCodeInput');
-    const code = codeInput.value.trim();
+    const code = codeInput.value.trim().toUpperCase().replace(/-/g, '');
     
     if (!code) {
         alert('Please enter a backup code');
@@ -1306,49 +1324,45 @@ function restoreFromCode() {
     }
     
     try {
-        // Remove dashes and convert back to base64
-        const base64Data = code.replace(/-/g, '');
+        // Look for backup using the short code
+        const mappingKey = 'backupMapping_' + code;
+        const backupKey = localStorage.getItem(mappingKey);
         
-        // Use safer decoding method
-        let jsonString;
-        try {
-            // Try modern approach first
-            jsonString = decodeURIComponent(escape(atob(base64Data)));
-        } catch (e) {
-            // Fallback for simpler encoding
-            jsonString = atob(base64Data);
+        if (!backupKey) {
+            throw new Error('Backup code not found. Code may be expired or invalid.');
         }
         
-        const backupData = JSON.parse(jsonString);
+        const backupDataStr = localStorage.getItem(backupKey);
+        if (!backupDataStr) {
+            throw new Error('Backup data not found.');
+        }
+        
+        const backupData = JSON.parse(backupDataStr);
         
         // Validate backup data
         if (!backupData.courses || !Array.isArray(backupData.courses)) {
-            throw new Error('Invalid backup code: courses data missing or invalid');
-        }
-        
-        if (!backupData.activities || !Array.isArray(backupData.activities)) {
-            throw new Error('Invalid backup code: activities data missing or invalid');
+            throw new Error('Invalid backup data format');
         }
         
         // Calculate stats for confirmation
         const totalTopics = backupData.courses.reduce((sum, course) => sum + (course.topics ? course.topics.length : 0), 0);
         const completedTopics = backupData.courses.reduce((sum, course) => sum + (course.topics ? course.topics.filter(t => t.completed).length : 0), 0);
+        const backupDate = new Date(backupData.timestamp).toLocaleDateString();
         
         // Confirm before restoring
         const confirmation = confirm(
-            `This will replace your current progress with data from ${new Date(backupData.timestamp).toLocaleDateString()}.\n\n` +
+            `Restore progress from ${backupDate}?\n\n` +
             `Backup contains:\n` +
             `• ${backupData.courses.length} courses\n` +
-            `• ${completedTopics} of ${totalTopics} topics completed\n` +
-            `• ${backupData.activities.length} recent activities\n\n` +
-            `Continue with restore?`
+            `• ${completedTopics} of ${totalTopics} topics completed\n\n` +
+            `This will replace your current progress.`
         );
         
         if (!confirmation) return;
         
         // Restore data
         courses = backupData.courses;
-        activities = backupData.activities;
+        activities = backupData.activities || [];
         dailyStats = backupData.dailyStats || { date: new Date().toDateString(), completed: 0, focusTime: 0 };
         
         // Save restored data
@@ -1368,7 +1382,7 @@ function restoreFromCode() {
         
     } catch (err) {
         console.error('Restore error:', err);
-        alert(`Invalid backup code: ${err.message}\n\nPlease check the code and try again.`);
+        alert(`Restore failed: ${err.message}`);
     }
 }
 
